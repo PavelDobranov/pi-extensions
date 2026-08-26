@@ -106,6 +106,7 @@ export function createOpenAISubscriptionController(
     } else if (!state.usage && cache) {
       state.usage = cache;
     }
+
     state.loading = !state.usage;
     notify();
 
@@ -127,6 +128,7 @@ export function createOpenAISubscriptionController(
           if (generation !== queueGeneration) {
             return;
           }
+
           queuedRefresh = undefined;
           const pending = pendingRefresh;
           pendingRefresh = undefined;
@@ -182,11 +184,13 @@ export function createOpenAISubscriptionController(
     if (sequence !== requestSequence) {
       return;
     }
+
     const displaySnapshot = withFallbackForFetchFailure(snapshot, cache);
 
     if (!snapshot.error) {
       cache = displaySnapshot;
     }
+
     state.usage = displaySnapshot;
     notify();
   }
@@ -224,6 +228,7 @@ export function selectOpenAIWindows(
     if (seen.has(key)) {
       continue;
     }
+
     seen.add(key);
     selected.push(window);
   }
@@ -300,6 +305,7 @@ function shouldUseOpenAISubscription(ctx: ExtensionContext): boolean {
   ) {
     return true;
   }
+
   try {
     return provider.includes("openai") && ctx.modelRegistry.isUsingOAuth(model);
   } catch {
@@ -354,6 +360,7 @@ async function fetchOpenAISubscriptionUsage(
         if (!isRecord(entry)) {
           continue;
         }
+
         const prefix =
           getNonEmptyString(entry.limit_name) ??
           getNonEmptyString(entry.metered_feature) ??
@@ -414,10 +421,12 @@ async function loadActiveOpenAIOAuthToken(
   if (!ctx.model) {
     return undefined;
   }
+
   try {
     if (!ctx.modelRegistry.isUsingOAuth(ctx.model)) {
       return undefined;
     }
+
     const token = await ctx.modelRegistry.getApiKeyForProvider(
       ctx.model.provider,
     );
@@ -477,6 +486,7 @@ function pushOpenAIWindow(
   if (!window) {
     return;
   }
+
   const resetDate = getOpenAIResetDate(window);
   const label = getWindowLabel(
     window.limit_window_seconds,
@@ -524,6 +534,7 @@ function getWindowLabel(
   if (!safeWindowSeconds) {
     return "0h";
   }
+
   const hours = Math.round(safeWindowSeconds / 3_600);
 
   if (hours >= 144) {
@@ -544,6 +555,7 @@ function prioritizeWindowsForModel(
   if (!model?.id || windows.length <= 1) {
     return windows;
   }
+
   const modelTokens = normalizeTokens(model.id);
 
   if (modelTokens.length === 0) {
@@ -675,6 +687,7 @@ function readJson(path: string): Record<string, unknown> | undefined {
     if (!existsSync(path)) {
       return undefined;
     }
+
     const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
 
     return isRecord(parsed) ? parsed : undefined;
@@ -703,6 +716,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
     if (!payload) {
       return undefined;
     }
+
     const padded = payload
       .replace(/-/g, "+")
       .replace(/_/g, "/")

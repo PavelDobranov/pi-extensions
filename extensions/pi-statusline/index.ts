@@ -30,6 +30,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
     if (ctx.mode !== "tui") {
       return;
     }
+
     ctx.ui.setFooter((tui, theme, footerData) => {
       footer = new PiStatuslineFooter(
         pi,
@@ -73,6 +74,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
 
       return;
     }
+
     void subscription.refresh(ctx, options).catch(() => requestRender());
   }
 
@@ -82,6 +84,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
     if (!isSubscriptionRefreshEnabled(ctx)) {
       return;
     }
+
     subscriptionTimer = setInterval(
       () => refreshSubscription(ctx),
       SUBSCRIPTION_REFRESH_TIMER_MS,
@@ -92,6 +95,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
     if (!subscriptionTimer) {
       return;
     }
+
     clearInterval(subscriptionTimer);
     subscriptionTimer = undefined;
   }
@@ -109,6 +113,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
     if (ctx.mode === "tui") {
       ctx.ui.setFooter(undefined);
     }
+
     footer = undefined;
   });
 
@@ -144,6 +149,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
       if (!footer && ctx.mode === "tui") {
         install(ctx);
       }
+
       footer?.reloadConfig();
 
       if (isSubscriptionRefreshEnabled(ctx)) {
@@ -153,6 +159,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
         clearSubscriptionTimer();
         subscription.clear();
       }
+
       requestRender();
       ctx.ui.notify("pi-statusline refreshed.", "info");
     },

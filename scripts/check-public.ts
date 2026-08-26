@@ -87,6 +87,7 @@ async function walk(directory: string): Promise<string[]> {
       if (!ignoredDirectories.has(entry.name)) {
         files.push(...(await walk(fullPath)));
       }
+
       continue;
     }
 
@@ -140,6 +141,7 @@ if (findings.length > 0) {
   for (const finding of findings) {
     console.error(`- ${finding}`);
   }
+
   console.error(
     "Review these findings manually; this is a lightweight helper, not a full secret scanner.",
   );

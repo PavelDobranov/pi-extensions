@@ -86,11 +86,13 @@ function readStatuslineConfigOverride(
     if (!existsSync(path)) {
       return undefined;
     }
+
     const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
 
     if (!isRecord(parsed)) {
       return undefined;
     }
+
     const left = readSectionList(parsed.left);
     const right = readSectionList(parsed.right);
     const openaiSubscription = readOpenAISubscriptionOverride(
@@ -111,6 +113,7 @@ function readSectionList(value: unknown): SectionName[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
+
   const sections: SectionName[] = [];
   const seen = new Set<SectionName>();
 
@@ -118,11 +121,13 @@ function readSectionList(value: unknown): SectionName[] | undefined {
     if (typeof item !== "string") {
       continue;
     }
+
     const section = item.trim() as SectionName;
 
     if (!VALID_SECTIONS.has(section) || seen.has(section)) {
       continue;
     }
+
     seen.add(section);
     sections.push(section);
   }
@@ -140,6 +145,7 @@ function readOpenAISubscriptionOverride(
   if (!isRecord(value)) {
     return undefined;
   }
+
   const override: NonNullable<StatuslineConfigOverride["openaiSubscription"]> =
     {};
 

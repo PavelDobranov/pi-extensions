@@ -137,6 +137,7 @@ async function walkSourceFiles(directory: string): Promise<string[]> {
       if (!ignoredDirectories.has(entry.name)) {
         files.push(...(await walkSourceFiles(fullPath)));
       }
+
       continue;
     }
 
@@ -364,6 +365,7 @@ if (errors.length > 0) {
   for (const error of errors) {
     console.error(`- ${error}`);
   }
+
   process.exit(1);
 }
 

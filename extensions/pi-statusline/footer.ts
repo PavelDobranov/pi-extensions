@@ -138,6 +138,7 @@ export class PiStatuslineFooter implements Component {
     if (rightWidth >= safeWidth) {
       return [rightSafe];
     }
+
     const leftAvailable = safeWidth - rightWidth - 1;
     const leftSafe =
       leftAvailable > 0 ? ensureWidth(leftText, leftAvailable) : "";
@@ -198,6 +199,7 @@ export class PiStatuslineFooter implements Component {
     if (!branch) {
       return undefined;
     }
+
     const parts = [`${SYMBOLS.git} ${branch}`];
 
     if (this.git?.sha) {
@@ -234,6 +236,7 @@ export class PiStatuslineFooter implements Component {
     ) {
       return undefined;
     }
+
     const cacheText =
       usage.cacheRead > 0 || usage.cacheWrite > 0
         ? ` R${formatTokens(usage.cacheRead)} W${formatTokens(usage.cacheWrite)}`
@@ -249,6 +252,7 @@ export class PiStatuslineFooter implements Component {
     if (!this.subscription.enabled) {
       return undefined;
     }
+
     const usage = this.subscription.usage;
 
     if (this.subscription.loading && (!usage || usage.windows.length === 0)) {
@@ -311,6 +315,7 @@ export class PiStatuslineFooter implements Component {
     if (!window) {
       return undefined;
     }
+
     const tokens = usage?.tokens ?? undefined;
     const percent =
       usage?.percent ??
@@ -339,6 +344,7 @@ export class PiStatuslineFooter implements Component {
     if (model && this.footerData.getAvailableProviderCount() > 1) {
       text = `${model.provider}/${text}`;
     }
+
     const thinking = this.getThinkingLevel();
 
     if (thinking) {
@@ -356,6 +362,7 @@ export class PiStatuslineFooter implements Component {
     if (this.gitRefresh || this.disposed) {
       return;
     }
+
     this.gitRefresh = readGitState(this.ctx.cwd)
       .then((git) => {
         if (!this.disposed) {
@@ -432,6 +439,7 @@ function fishPath(path: string): string {
   if (normalized === "~" || !normalized.includes("/")) {
     return normalized;
   }
+
   const prefix = normalized.startsWith("~/")
     ? "~/"
     : normalized.startsWith("/")
@@ -484,6 +492,7 @@ function addUsage(
   if (!usage) {
     return;
   }
+
   totals.input += usage.input ?? 0;
   totals.output += usage.output ?? 0;
   totals.cacheRead += usage.cacheRead ?? 0;
@@ -526,12 +535,14 @@ async function readGitState(cwd: string): Promise<GitState | undefined> {
   if (!status) {
     return undefined;
   }
+
   const lines = status.split("\n").filter(Boolean);
   const header = lines.find((line) => line.startsWith("## "));
 
   if (!header) {
     return undefined;
   }
+
   const branchPart = header.slice(3);
   let branch = branchPart.split("...")[0]?.split(" ")[0]?.trim();
 
