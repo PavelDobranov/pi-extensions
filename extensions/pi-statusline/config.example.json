@@ -1,0 +1,8 @@
+{
+  "left": ["cwd", "git", "session", "status"],
+  "right": ["context", "model"],
+  "openaiSubscription": {
+    "enabled": false,
+    "showResetTimes": false
+  }
+}

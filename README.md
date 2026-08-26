@@ -7,7 +7,8 @@ A public pnpm monorepo for independent Pi extensions.
 This catalog is maintained by hand. Add each extension here with a short
 description and a link to its package directory.
 
-No extensions have been added yet.
+- [`pi-statusline`](extensions/pi-statusline) — theme-aware status line footer
+  for Pi.
 
 ## Installation
 
