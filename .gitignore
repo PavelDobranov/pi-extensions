@@ -1,0 +1,41 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated output and caches
+dist/
+build/
+coverage/
+.nyc_output/
+.cache/
+.tmp/
+tmp/
+*.tsbuildinfo
+*.tgz
+
+# Logs
+*.log
+
+# Local environment and project state
+.env
+.env.*
+!.env.example
+.pi/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Editor and IDE state
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
