@@ -4,16 +4,12 @@ A public pnpm monorepo for independent Pi extensions.
 
 ## Extensions
 
-This catalog is maintained by hand. Add each extension here with a short
-description and a link to its package directory.
-
 - [`pi-statusline`](extensions/pi-statusline) — theme-aware status line footer
   for Pi.
 
 ## Installation
 
-Pi packages are private by default while they are being developed. After an
-extension is published, install it with Pi's native package commands.
+After an extension is published, install it with Pi's native package commands.
 
 ### Global installation
 
