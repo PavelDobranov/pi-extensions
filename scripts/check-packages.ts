@@ -20,6 +20,7 @@ function fail(packageName: string, message: string): void {
 async function exists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
+
     return true;
   } catch {
     return false;
@@ -28,6 +29,7 @@ async function exists(filePath: string): Promise<boolean> {
 
 async function readJson(filePath: string): Promise<unknown> {
   const text = await readFile(filePath, "utf8");
+
   return JSON.parse(text) as unknown;
 }
 
@@ -37,6 +39,7 @@ async function getExtensionFolders(): Promise<string[]> {
   }
 
   const entries = await readdir(extensionsDir, { withFileTypes: true });
+
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -77,6 +80,7 @@ function validatePackageJson(
   }
 
   const scripts = packageJson.scripts;
+
   if (
     !isObject(scripts) ||
     typeof scripts.typecheck !== "string" ||
@@ -87,6 +91,7 @@ function validatePackageJson(
 
   const pi = packageJson.pi;
   const extensions = isObject(pi) ? pi.extensions : undefined;
+
   if (!Array.isArray(extensions) || extensions.length === 0) {
     fail(displayName, "expected non-empty pi.extensions array");
   } else {
@@ -106,6 +111,7 @@ function validatePackageJson(
     }
 
     const publishConfig = packageJson.publishConfig;
+
     if (!isObject(publishConfig) || publishConfig.access !== "public") {
       fail(
         displayName,
@@ -136,6 +142,7 @@ async function validateExtension(folderName: string): Promise<void> {
 
   for (const requiredFile of ["package.json", "README.md", "tsconfig.json"]) {
     const filePath = path.join(extensionDir, requiredFile);
+
     if (!(await exists(filePath))) {
       fail(displayName, `missing ${requiredFile}`);
     }
@@ -151,11 +158,13 @@ async function validateExtension(folderName: string): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     fail(displayName, `invalid package.json: ${message}`);
+
     return;
   }
 
   if (!isObject(packageJson)) {
     fail(displayName, "package.json must contain a JSON object");
+
     return;
   }
 
@@ -164,12 +173,14 @@ async function validateExtension(folderName: string): Promise<void> {
   const pi = packageJson.pi;
   const piExtensions =
     isObject(pi) && Array.isArray(pi.extensions) ? pi.extensions : [];
+
   for (const entrypoint of piExtensions) {
     if (typeof entrypoint !== "string" || entrypoint.trim() === "") {
       continue;
     }
 
     const entrypointPath = path.resolve(extensionDir, entrypoint);
+
     if (
       !entrypointPath.startsWith(`${extensionDir}${path.sep}`) &&
       entrypointPath !== extensionDir
@@ -187,6 +198,7 @@ async function validateExtension(folderName: string): Promise<void> {
     }
 
     const entrypointStat = await stat(entrypointPath);
+
     if (!entrypointStat.isFile()) {
       fail(displayName, `Pi entrypoint is not a file: ${entrypoint}`);
     }
@@ -194,12 +206,14 @@ async function validateExtension(folderName: string): Promise<void> {
 }
 
 const folders = await getExtensionFolders();
+
 for (const folder of folders) {
   await validateExtension(folder);
 }
 
 if (errors.length > 0) {
   console.error("Package checks failed:");
+
   for (const error of errors) {
     console.error(`- ${error}`);
   }

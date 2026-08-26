@@ -27,7 +27,9 @@ export default function piStatusline(pi: ExtensionAPI): void {
   const subscription = createOpenAISubscriptionController(requestRender);
 
   function install(ctx: ExtensionContext): void {
-    if (ctx.mode !== "tui") return;
+    if (ctx.mode !== "tui") {
+      return;
+    }
     ctx.ui.setFooter((tui, theme, footerData) => {
       footer = new PiStatuslineFooter(
         pi,
@@ -37,6 +39,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
         footerData,
         subscription.state,
       );
+
       return footer;
     });
   }
@@ -50,7 +53,10 @@ export default function piStatusline(pi: ExtensionAPI): void {
   }
 
   function isSubscriptionRefreshEnabled(ctx: ExtensionContext): boolean {
-    if (ctx.mode !== "tui") return false;
+    if (ctx.mode !== "tui") {
+      return false;
+    }
+
     return (
       footer?.isOpenAISubscriptionEnabled() ??
       configEnablesOpenAISubscription(loadStatuslineConfig(ctx))
@@ -64,6 +70,7 @@ export default function piStatusline(pi: ExtensionAPI): void {
     if (!isSubscriptionRefreshEnabled(ctx)) {
       clearSubscriptionTimer();
       subscription.clear();
+
       return;
     }
     void subscription.refresh(ctx, options).catch(() => requestRender());
@@ -71,7 +78,10 @@ export default function piStatusline(pi: ExtensionAPI): void {
 
   function startSubscriptionTimer(ctx: ExtensionContext): void {
     clearSubscriptionTimer();
-    if (!isSubscriptionRefreshEnabled(ctx)) return;
+
+    if (!isSubscriptionRefreshEnabled(ctx)) {
+      return;
+    }
     subscriptionTimer = setInterval(
       () => refreshSubscription(ctx),
       SUBSCRIPTION_REFRESH_TIMER_MS,
@@ -79,7 +89,9 @@ export default function piStatusline(pi: ExtensionAPI): void {
   }
 
   function clearSubscriptionTimer(): void {
-    if (!subscriptionTimer) return;
+    if (!subscriptionTimer) {
+      return;
+    }
     clearInterval(subscriptionTimer);
     subscriptionTimer = undefined;
   }
@@ -93,7 +105,10 @@ export default function piStatusline(pi: ExtensionAPI): void {
   pi.on("session_shutdown", async (_event, ctx) => {
     clearSubscriptionTimer();
     subscription.clear();
-    if (ctx.mode === "tui") ctx.ui.setFooter(undefined);
+
+    if (ctx.mode === "tui") {
+      ctx.ui.setFooter(undefined);
+    }
     footer = undefined;
   });
 
@@ -119,12 +134,18 @@ export default function piStatusline(pi: ExtensionAPI): void {
     description: "Refresh the project-local statusline footer config",
     handler: async (args, ctx) => {
       const command = args.trim();
+
       if (command !== "refresh") {
         ctx.ui.notify("Usage: /pi-statusline refresh", "warning");
+
         return;
       }
-      if (!footer && ctx.mode === "tui") install(ctx);
+
+      if (!footer && ctx.mode === "tui") {
+        install(ctx);
+      }
       footer?.reloadConfig();
+
       if (isSubscriptionRefreshEnabled(ctx)) {
         startSubscriptionTimer(ctx);
         refreshSubscription(ctx, { force: true, allowStaleCache: true });

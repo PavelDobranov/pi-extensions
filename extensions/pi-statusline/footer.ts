@@ -117,22 +117,32 @@ export class PiStatuslineFooter implements Component {
 
   render(width: number): string[] {
     const safeWidth = Math.max(0, Math.floor(width));
-    if (safeWidth <= 0) return [""];
+
+    if (safeWidth <= 0) {
+      return [""];
+    }
 
     const left = this.renderConfiguredSegments(this.config.left);
     const right = this.renderConfiguredSegments(this.config.right);
 
     const leftText = renderSegments(left, this.theme);
     const rightText = renderSegments(right, this.theme);
-    if (!rightText) return [ensureWidth(leftText, safeWidth)];
+
+    if (!rightText) {
+      return [ensureWidth(leftText, safeWidth)];
+    }
 
     const rightSafe = ensureWidth(rightText, safeWidth);
     const rightWidth = visibleWidth(rightSafe);
-    if (rightWidth >= safeWidth) return [rightSafe];
+
+    if (rightWidth >= safeWidth) {
+      return [rightSafe];
+    }
     const leftAvailable = safeWidth - rightWidth - 1;
     const leftSafe =
       leftAvailable > 0 ? ensureWidth(leftText, leftAvailable) : "";
     const gap = Math.max(1, safeWidth - visibleWidth(leftSafe) - rightWidth);
+
     return [
       ensureWidth(`${leftSafe}${" ".repeat(gap)}${rightSafe}`, safeWidth),
     ];
@@ -140,11 +150,17 @@ export class PiStatuslineFooter implements Component {
 
   private renderConfiguredSegments(sections: SectionName[]): Segment[] {
     const segments: Segment[] = [];
+
     for (const section of sections) {
       const rendered = this.renderSection(section);
-      if (Array.isArray(rendered)) segments.push(...rendered);
-      else if (rendered) segments.push(rendered);
+
+      if (Array.isArray(rendered)) {
+        segments.push(...rendered);
+      } else if (rendered) {
+        segments.push(rendered);
+      }
     }
+
     return segments.filter((segment) => Boolean(segment.text.trim()));
   }
 
@@ -178,12 +194,28 @@ export class PiStatuslineFooter implements Component {
     const branch = sanitize(
       this.footerData.getGitBranch() ?? this.git?.branch ?? "",
     );
-    if (!branch) return undefined;
+
+    if (!branch) {
+      return undefined;
+    }
     const parts = [`${SYMBOLS.git} ${branch}`];
-    if (this.git?.sha) parts.push(this.git.sha);
-    if (this.git?.dirtyCount) parts.push(SYMBOLS.dirty);
-    if (this.git?.ahead) parts.push(`${SYMBOLS.ahead}${this.git.ahead}`);
-    if (this.git?.behind) parts.push(`${SYMBOLS.behind}${this.git.behind}`);
+
+    if (this.git?.sha) {
+      parts.push(this.git.sha);
+    }
+
+    if (this.git?.dirtyCount) {
+      parts.push(SYMBOLS.dirty);
+    }
+
+    if (this.git?.ahead) {
+      parts.push(`${SYMBOLS.ahead}${this.git.ahead}`);
+    }
+
+    if (this.git?.behind) {
+      parts.push(`${SYMBOLS.behind}${this.git.behind}`);
+    }
+
     return {
       ...(this.git?.dirtyCount ? COLORS.gitDirty : COLORS.gitClean),
       text: parts.join(" "),
@@ -192,18 +224,21 @@ export class PiStatuslineFooter implements Component {
 
   private sessionSegment(): Segment | undefined {
     const usage = getUsage(this.ctx);
+
     if (
       usage.input === 0 &&
       usage.output === 0 &&
       usage.cacheRead === 0 &&
       usage.cacheWrite === 0 &&
       usage.cost === 0
-    )
+    ) {
       return undefined;
+    }
     const cacheText =
       usage.cacheRead > 0 || usage.cacheWrite > 0
         ? ` R${formatTokens(usage.cacheRead)} W${formatTokens(usage.cacheWrite)}`
         : "";
+
     return {
       ...COLORS.session,
       text: `${SYMBOLS.input}${formatTokens(usage.input)} ${SYMBOLS.output}${formatTokens(usage.output)}${cacheText} $${usage.cost.toFixed(3)}`,
@@ -211,20 +246,33 @@ export class PiStatuslineFooter implements Component {
   }
 
   private subscriptionSegment(): Segment | undefined {
-    if (!this.subscription.enabled) return undefined;
+    if (!this.subscription.enabled) {
+      return undefined;
+    }
     const usage = this.subscription.usage;
-    if (this.subscription.loading && (!usage || usage.windows.length === 0))
+
+    if (this.subscription.loading && (!usage || usage.windows.length === 0)) {
       return { ...COLORS.subscription, text: "OpenAI ..." };
-    if (!usage) return undefined;
-    if (usage.error?.code === "NO_CREDENTIALS")
+    }
+
+    if (!usage) {
+      return undefined;
+    }
+
+    if (usage.error?.code === "NO_CREDENTIALS") {
       return { ...COLORS.warning, text: "OpenAI no OAuth" };
+    }
 
     const windows = selectOpenAIWindows(usage.windows, this.ctx.model).slice(
       0,
       3,
     );
+
     if (windows.length === 0) {
-      if (!usage.error) return undefined;
+      if (!usage.error) {
+        return undefined;
+      }
+
       return {
         ...COLORS.warning,
         text: `OpenAI ${formatSubscriptionError(usage.error)}`,
@@ -240,6 +288,7 @@ export class PiStatuslineFooter implements Component {
           ? COLORS.warning
           : COLORS.subscription;
     const showResetTimes = this.config.openaiSubscription.showResetTimes;
+
     return {
       ...color,
       text: `OpenAI ${windows.map((window) => formatOpenAISubscriptionWindow(window, showResetTimes)).join(" | ")}`,
@@ -258,7 +307,10 @@ export class PiStatuslineFooter implements Component {
   private contextSegment(): Segment | undefined {
     const usage = this.ctx.getContextUsage();
     const window = usage?.contextWindow ?? this.ctx.model?.contextWindow;
-    if (!window) return undefined;
+
+    if (!window) {
+      return undefined;
+    }
     const tokens = usage?.tokens ?? undefined;
     const percent =
       usage?.percent ??
@@ -276,16 +328,23 @@ export class PiStatuslineFooter implements Component {
       tokens === undefined
         ? ""
         : ` ${formatTokens(tokens)}/${formatTokens(window)}`;
+
     return { ...color, text: `${label} ${bar(ratio, 8)}${tokenText}` };
   }
 
   private modelSegment(): Segment {
     const model = this.ctx.model;
     let text = model?.id ?? "no-model";
-    if (model && this.footerData.getAvailableProviderCount() > 1)
+
+    if (model && this.footerData.getAvailableProviderCount() > 1) {
       text = `${model.provider}/${text}`;
+    }
     const thinking = this.getThinkingLevel();
-    if (thinking) text += ` ${thinking}`;
+
+    if (thinking) {
+      text += ` ${thinking}`;
+    }
+
     return { ...COLORS.model, text: sanitize(text) };
   }
 
@@ -294,10 +353,14 @@ export class PiStatuslineFooter implements Component {
   }
 
   refreshGit(): void {
-    if (this.gitRefresh || this.disposed) return;
+    if (this.gitRefresh || this.disposed) {
+      return;
+    }
     this.gitRefresh = readGitState(this.ctx.cwd)
       .then((git) => {
-        if (!this.disposed) this.git = git;
+        if (!this.disposed) {
+          this.git = git;
+        }
       })
       .finally(() => {
         this.gitRefresh = undefined;
@@ -306,7 +369,9 @@ export class PiStatuslineFooter implements Component {
   }
 
   private requestRender(): void {
-    if (!this.disposed) this.tui.requestRender();
+    if (!this.disposed) {
+      this.tui.requestRender();
+    }
   }
 }
 
@@ -319,12 +384,18 @@ function renderSegments(segments: Segment[], theme: Theme): string {
 }
 
 function ensureWidth(line: string, width: number): string {
-  if (visibleWidth(line) <= width) return line;
+  if (visibleWidth(line) <= width) {
+    return line;
+  }
+
   return truncateToWidth(line, width, "...");
 }
 
 function ansi(text: string, segment: Segment, theme: Theme): string {
-  if (!USE_COLOR) return text;
+  if (!USE_COLOR) {
+    return text;
+  }
+
   return `${theme.getFgAnsi(segment.fg)}${theme.getBgAnsi(segment.bg)}${text}${RESET}`;
 }
 
@@ -341,8 +412,15 @@ function sanitize(text: string): string {
 
 function collapseHome(path: string): string {
   const home = process.env.HOME || process.env.USERPROFILE;
-  if (!home) return path;
-  if (path === home) return "~";
+
+  if (!home) {
+    return path;
+  }
+
+  if (path === home) {
+    return "~";
+  }
+
   return path.startsWith(`${home}/`) || path.startsWith(`${home}\\`)
     ? `~${path.slice(home.length)}`
     : path;
@@ -350,7 +428,10 @@ function collapseHome(path: string): string {
 
 function fishPath(path: string): string {
   const normalized = path.replace(/\\/g, "/");
-  if (normalized === "~" || !normalized.includes("/")) return normalized;
+
+  if (normalized === "~" || !normalized.includes("/")) {
+    return normalized;
+  }
   const prefix = normalized.startsWith("~/")
     ? "~/"
     : normalized.startsWith("/")
@@ -358,7 +439,11 @@ function fishPath(path: string): string {
       : "";
   const body = normalized.replace(/^~\//, "").replace(/^\//, "");
   const parts = body.split("/").filter(Boolean);
-  if (parts.length <= 1) return `${prefix}${parts.join("/")}`;
+
+  if (parts.length <= 1) {
+    return `${prefix}${parts.join("/")}`;
+  }
+
   return `${prefix}${[...parts.slice(0, -1).map((part) => part[0] ?? part), parts.at(-1) ?? basename(path)].join("/")}`;
 }
 
@@ -370,16 +455,19 @@ function getUsage(ctx: ExtensionContext): {
   cost: number;
 } {
   const totals = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0 };
+
   for (const entry of ctx.sessionManager.getEntries()) {
     if (entry.type === "message") {
-      if (entry.message.role === "assistant")
+      if (entry.message.role === "assistant") {
         addUsage(totals, (entry.message as AssistantMessage).usage);
-      else if (entry.message.role === "toolResult")
+      } else if (entry.message.role === "toolResult") {
         addUsage(totals, (entry.message as ToolResultMessage).usage);
+      }
     } else if (entry.type === "compaction" || entry.type === "branch_summary") {
       addUsage(totals, entry.usage);
     }
   }
+
   return totals;
 }
 
@@ -393,7 +481,9 @@ function addUsage(
   },
   usage: Usage | undefined,
 ): void {
-  if (!usage) return;
+  if (!usage) {
+    return;
+  }
   totals.input += usage.input ?? 0;
   totals.output += usage.output ?? 0;
   totals.cacheRead += usage.cacheRead ?? 0;
@@ -402,14 +492,24 @@ function addUsage(
 }
 
 function formatTokens(value: number): string {
-  if (value < 1_000) return String(value);
-  if (value < 10_000) return `${(value / 1_000).toFixed(1)}k`;
-  if (value < 1_000_000) return `${Math.round(value / 1_000)}k`;
+  if (value < 1_000) {
+    return String(value);
+  }
+
+  if (value < 10_000) {
+    return `${(value / 1_000).toFixed(1)}k`;
+  }
+
+  if (value < 1_000_000) {
+    return `${Math.round(value / 1_000)}k`;
+  }
+
   return `${(value / 1_000_000).toFixed(1)}M`;
 }
 
 function bar(ratio: number, width: number): string {
   const filled = Math.round(clamp(ratio, 0, 1) * width);
+
   return `${SYMBOLS.filled.repeat(filled)}${SYMBOLS.empty.repeat(Math.max(0, width - filled))}`;
 }
 
@@ -422,13 +522,23 @@ async function readGitState(cwd: string): Promise<GitState | undefined> {
     git(["rev-parse", "--short", "HEAD"], cwd),
     git(["status", "--porcelain=v1", "--branch"], cwd),
   ]);
-  if (!status) return undefined;
+
+  if (!status) {
+    return undefined;
+  }
   const lines = status.split("\n").filter(Boolean);
   const header = lines.find((line) => line.startsWith("## "));
-  if (!header) return undefined;
+
+  if (!header) {
+    return undefined;
+  }
   const branchPart = header.slice(3);
   let branch = branchPart.split("...")[0]?.split(" ")[0]?.trim();
-  if (branch === "HEAD") branch = "detached";
+
+  if (branch === "HEAD") {
+    branch = "detached";
+  }
+
   return {
     branch,
     sha,

@@ -113,11 +113,13 @@ async function checkFileContent(relativePath: string): Promise<void> {
 
   const fullPath = path.join(rootDir, relativePath);
   const fileStat = await stat(fullPath);
+
   if (fileStat.size > 1024 * 1024) {
     return;
   }
 
   const content = await readFile(fullPath, "utf8");
+
   for (const { pattern, reason } of secretContentPatterns) {
     if (pattern.test(content)) {
       findings.push(`${relativePath}: ${reason}`);
@@ -126,6 +128,7 @@ async function checkFileContent(relativePath: string): Promise<void> {
 }
 
 const files = await walk(rootDir);
+
 for (const file of files) {
   checkFileName(file);
   await checkFileContent(file);
@@ -133,6 +136,7 @@ for (const file of files) {
 
 if (findings.length > 0) {
   console.error("Public repository checks found possible issues:");
+
   for (const finding of findings) {
     console.error(`- ${finding}`);
   }

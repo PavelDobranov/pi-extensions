@@ -38,6 +38,7 @@ function fail(message: string): void {
 async function exists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
+
     return true;
   } catch {
     return false;
@@ -49,14 +50,18 @@ async function readJsonObject(
 ): Promise<JsonObject | undefined> {
   try {
     const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown;
+
     if (!isObject(parsed)) {
       fail(`${path.relative(rootDir, filePath)} must contain a JSON object`);
+
       return undefined;
     }
+
     return parsed;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     fail(`cannot read ${path.relative(rootDir, filePath)}: ${message}`);
+
     return undefined;
   }
 }
@@ -67,6 +72,7 @@ async function getExtensionFolders(): Promise<string[]> {
   }
 
   const entries = await readdir(extensionsDir, { withFileTypes: true });
+
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -78,6 +84,7 @@ function dependencyMap(
   field: "dependencies" | "peerDependencies" | "optionalDependencies",
 ): JsonObject {
   const value = packageJson[field];
+
   return isObject(value) ? value : {};
 }
 
@@ -88,6 +95,7 @@ function validateWorkspaceDependencies(packageJson: JsonObject): void {
     "optionalDependencies",
   ] as const) {
     const dependencies = dependencyMap(packageJson, field);
+
     for (const [name, version] of Object.entries(dependencies)) {
       if (typeof version === "string" && version.startsWith("workspace:")) {
         fail(
@@ -109,6 +117,7 @@ function validateSiblingPackageDependencies(
     "optionalDependencies",
   ] as const) {
     const dependencies = dependencyMap(packageJson, field);
+
     for (const name of Object.keys(dependencies)) {
       if (name !== ownName && siblingPackageNames.has(name)) {
         fail(`${field}.${name} depends on sibling extension package`);
@@ -153,6 +162,7 @@ function importedSpecifiers(source: string): string[] {
   ]) {
     for (const match of source.matchAll(pattern)) {
       const specifier = match[1];
+
       if (specifier !== undefined) {
         specifiers.add(specifier);
       }
@@ -173,12 +183,14 @@ function packageNameFromSpecifier(specifier: string): string | undefined {
 
   const parts = specifier.split("/");
   const firstPart = parts[0];
+
   if (firstPart === undefined || firstPart === "") {
     return undefined;
   }
 
   if (firstPart.startsWith("@")) {
     const secondPart = parts[1];
+
     return secondPart === undefined ? firstPart : `${firstPart}/${secondPart}`;
   }
 
@@ -201,6 +213,7 @@ async function validateSourceImports(
   ]);
 
   const sourceFiles = await walkSourceFiles(extensionDir);
+
   for (const sourceFile of sourceFiles) {
     const relativeFile = path.relative(rootDir, sourceFile);
     const content = await readFile(sourceFile, "utf8");
@@ -213,6 +226,7 @@ async function validateSourceImports(
       }
 
       const importedPackageName = packageNameFromSpecifier(specifier);
+
       if (importedPackageName === undefined) {
         continue;
       }
@@ -239,6 +253,7 @@ async function validateEntrypoints(
 
   if (!Array.isArray(piExtensions) || piExtensions.length === 0) {
     fail("package must define non-empty pi.extensions");
+
     return;
   }
 
@@ -249,6 +264,7 @@ async function validateEntrypoints(
     }
 
     const entrypointPath = path.resolve(extensionDir, entrypoint);
+
     if (
       !entrypointPath.startsWith(`${extensionDir}${path.sep}`) &&
       entrypointPath !== extensionDir
@@ -263,6 +279,7 @@ async function validateEntrypoints(
     }
 
     const entrypointStat = await stat(entrypointPath);
+
     if (!entrypointStat.isFile()) {
       fail(`Pi entrypoint is not a file: ${entrypoint}`);
     }
@@ -280,6 +297,7 @@ async function resolveExtensionFolder(
   const unscopedName = input.startsWith(`${packageScope}/`)
     ? input.slice(packageScope.length + 1)
     : input;
+
   if (folders.includes(unscopedName)) {
     return unscopedName;
   }
@@ -288,6 +306,7 @@ async function resolveExtensionFolder(
 }
 
 const target = process.argv[2];
+
 if (target === undefined || target.trim() === "") {
   console.error(
     "Usage: pnpm check:isolated <extension-folder-or-package-name>",
@@ -297,6 +316,7 @@ if (target === undefined || target.trim() === "") {
 
 const folders = await getExtensionFolders();
 const folder = await resolveExtensionFolder(target, folders);
+
 if (folder === undefined) {
   console.error(
     `Unknown extension ${target}. Available extensions: ${folders.length > 0 ? folders.join(", ") : "none"}.`,
@@ -306,6 +326,7 @@ if (folder === undefined) {
 
 const extensionDir = path.join(extensionsDir, folder);
 const packageJsonPath = path.join(extensionDir, "package.json");
+
 for (const requiredFile of ["package.json", "README.md", "tsconfig.json"]) {
   if (!(await exists(path.join(extensionDir, requiredFile)))) {
     fail(`missing ${requiredFile}`);
@@ -313,8 +334,10 @@ for (const requiredFile of ["package.json", "README.md", "tsconfig.json"]) {
 }
 
 const packageJson = await readJsonObject(packageJsonPath);
+
 if (packageJson !== undefined) {
   const expectedName = `${packageScope}/${folder}`;
+
   if (packageJson.name !== expectedName) {
     fail(`expected package name ${expectedName}`);
   }
@@ -337,6 +360,7 @@ if (packageJson !== undefined) {
 
 if (errors.length > 0) {
   console.error(`Isolation checks failed for ${target}:`);
+
   for (const error of errors) {
     console.error(`- ${error}`);
   }

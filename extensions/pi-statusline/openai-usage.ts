@@ -95,13 +95,17 @@ export function createOpenAISubscriptionController(
       state.usage = undefined;
       state.loading = false;
       notify();
+
       return;
     }
 
     state.enabled = true;
-    if (options.resetProvider)
+
+    if (options.resetProvider) {
       state.usage = options.allowStaleCache ? cache : undefined;
-    else if (!state.usage && cache) state.usage = cache;
+    } else if (!state.usage && cache) {
+      state.usage = cache;
+    }
     state.loading = !state.usage;
     notify();
 
@@ -116,20 +120,28 @@ export function createOpenAISubscriptionController(
       };
       state.loading = !state.usage;
       notify();
+
       if (!queuedRefresh) {
         const queueGeneration = generation;
         queuedRefresh = inFlight.finally(async () => {
-          if (generation !== queueGeneration) return;
+          if (generation !== queueGeneration) {
+            return;
+          }
           queuedRefresh = undefined;
           const pending = pendingRefresh;
           pendingRefresh = undefined;
-          if (pending) await refresh(pending.ctx, pending.options);
+
+          if (pending) {
+            await refresh(pending.ctx, pending.options);
+          }
         });
       }
+
       return queuedRefresh;
     }
 
     const now = Date.now();
+
     if (
       !options.force &&
       lastAttemptAt &&
@@ -137,6 +149,7 @@ export function createOpenAISubscriptionController(
     ) {
       state.loading = false;
       notify();
+
       return;
     }
 
@@ -146,13 +159,17 @@ export function createOpenAISubscriptionController(
     notify();
 
     const promise = fetchAndCommit(ctx, requestSequence).finally(() => {
-      if (inFlight === promise) inFlight = undefined;
+      if (inFlight === promise) {
+        inFlight = undefined;
+      }
+
       if (sequence === requestSequence) {
         state.loading = false;
         notify();
       }
     });
     inFlight = promise;
+
     return promise;
   }
 
@@ -161,9 +178,15 @@ export function createOpenAISubscriptionController(
     requestSequence: number,
   ): Promise<void> {
     const snapshot = await fetchOpenAISubscriptionUsage(ctx);
-    if (sequence !== requestSequence) return;
+
+    if (sequence !== requestSequence) {
+      return;
+    }
     const displaySnapshot = withFallbackForFetchFailure(snapshot, cache);
-    if (!snapshot.error) cache = displaySnapshot;
+
+    if (!snapshot.error) {
+      cache = displaySnapshot;
+    }
     state.usage = displaySnapshot;
     notify();
   }
@@ -194,12 +217,17 @@ export function selectOpenAIWindows(
   );
   const selected: RateWindow[] = [];
   const seen = new Set<string>();
+
   for (const window of prioritized) {
     const key = formatSubscriptionLabel(window.label);
-    if (seen.has(key)) continue;
+
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     selected.push(window);
   }
+
   return selected;
 }
 
@@ -210,15 +238,21 @@ export function formatOpenAISubscriptionWindow(
   const label = formatSubscriptionLabel(window.label);
   const remaining = formatSubscriptionPercent(100 - window.usedPercent);
   const reset = showResetTime ? formatWindowReset(window) : undefined;
+
   return `${label}-${remaining}%${reset ? ` reset ${reset}` : ""}`;
 }
 
 export function formatSubscriptionError(
   error: OpenAISubscriptionError,
 ): string {
-  if (error.code === "HTTP_ERROR" && error.httpStatus)
+  if (error.code === "HTTP_ERROR" && error.httpStatus) {
     return `HTTP ${error.httpStatus}`;
-  if (error.code === "NO_CREDENTIALS") return "no OAuth";
+  }
+
+  if (error.code === "NO_CREDENTIALS") {
+    return "no OAuth";
+  }
+
   return "fetch failed";
 }
 
@@ -241,24 +275,31 @@ function shouldUseOpenAISubscription(ctx: ExtensionContext): boolean {
     "CODEX_ACCESS_TOKEN",
   ]);
   const model = ctx.model;
-  if (!model) return Boolean(envToken);
+
+  if (!model) {
+    return Boolean(envToken);
+  }
 
   const provider = model.provider?.toLowerCase() ?? "";
   const id = model.id?.toLowerCase() ?? "";
+
   if (
     provider.includes("openai-codex") ||
     provider.includes("codex") ||
     provider.includes("chatgpt") ||
     id.includes("codex")
-  )
+  ) {
     return true;
+  }
+
   if (
     envToken &&
     (provider.includes("openai") ||
       id.startsWith("gpt-") ||
       id.includes("openai"))
-  )
+  ) {
     return true;
+  }
   try {
     return provider.includes("openai") && ctx.modelRegistry.isUsingOAuth(model);
   } catch {
@@ -270,8 +311,10 @@ async function fetchOpenAISubscriptionUsage(
   ctx: ExtensionContext,
 ): Promise<OpenAISubscriptionSnapshot> {
   const { accessToken, accountId } = await loadOpenAICredentials(ctx);
-  if (!accessToken)
+
+  if (!accessToken) {
     return emptySubscriptionSnapshot({ code: "NO_CREDENTIALS" });
+  }
 
   const { controller, clear } = createTimeoutController(
     SUBSCRIPTION_API_TIMEOUT_MS,
@@ -281,7 +324,10 @@ async function fetchOpenAISubscriptionUsage(
       Authorization: `Bearer ${accessToken}`,
       Accept: "application/json",
     };
-    if (accountId) headers["ChatGPT-Account-Id"] = accountId;
+
+    if (accountId) {
+      headers["ChatGPT-Account-Id"] = accountId;
+    }
 
     const res = await fetch("https://chatgpt.com/backend-api/wham/usage", {
       method: "GET",
@@ -289,11 +335,12 @@ async function fetchOpenAISubscriptionUsage(
       signal: controller.signal,
     });
 
-    if (!res.ok)
+    if (!res.ok) {
       return emptySubscriptionSnapshot({
         code: "HTTP_ERROR",
         httpStatus: res.status,
       });
+    }
 
     const data = (await res.json()) as {
       rate_limit?: OpenAIRateLimit;
@@ -301,9 +348,12 @@ async function fetchOpenAISubscriptionUsage(
     };
     const windows: RateWindow[] = [];
     addOpenAIRateWindows(windows, data.rate_limit);
+
     if (Array.isArray(data.additional_rate_limits)) {
       for (const entry of data.additional_rate_limits) {
-        if (!isRecord(entry)) continue;
+        if (!isRecord(entry)) {
+          continue;
+        }
         const prefix =
           getNonEmptyString(entry.limit_name) ??
           getNonEmptyString(entry.metered_feature) ??
@@ -336,6 +386,7 @@ async function loadOpenAICredentials(
     "OPENAI_CODEX_ACCOUNT_ID",
     "CHATGPT_ACCOUNT_ID",
   ]);
+
   if (envAccessToken) {
     return {
       accessToken: envAccessToken,
@@ -347,6 +398,7 @@ async function loadOpenAICredentials(
   }
 
   const accessToken = await loadActiveOpenAIOAuthToken(ctx);
+
   return {
     accessToken,
     accountId:
@@ -359,12 +411,17 @@ async function loadOpenAICredentials(
 async function loadActiveOpenAIOAuthToken(
   ctx: ExtensionContext,
 ): Promise<string | undefined> {
-  if (!ctx.model) return undefined;
+  if (!ctx.model) {
+    return undefined;
+  }
   try {
-    if (!ctx.modelRegistry.isUsingOAuth(ctx.model)) return undefined;
+    if (!ctx.modelRegistry.isUsingOAuth(ctx.model)) {
+      return undefined;
+    }
     const token = await ctx.modelRegistry.getApiKeyForProvider(
       ctx.model.provider,
     );
+
     return token?.trim() || undefined;
   } catch {
     return undefined;
@@ -390,11 +447,15 @@ function loadOpenAIAccountIdFromDisk(): string | undefined {
       "chatgptAccountId",
       "chatgpt_account_id",
     ]);
-  if (piAccountId) return piAccountId;
+
+  if (piAccountId) {
+    return piAccountId;
+  }
 
   const codexHome = process.env.CODEX_HOME || join(homedir(), ".codex");
   const codexAuth = readJson(join(codexHome, "auth.json"));
   const tokenEntry = isRecord(codexAuth?.tokens) ? codexAuth.tokens : undefined;
+
   return getRecordString(tokenEntry, ["account_id", "accountId"]);
 }
 
@@ -413,7 +474,9 @@ function pushOpenAIWindow(
   window: OpenAIRateWindow | undefined,
   fallbackWindowSeconds: number,
 ): void {
-  if (!window) return;
+  if (!window) {
+    return;
+  }
   const resetDate = getOpenAIResetDate(window);
   const label = getWindowLabel(
     window.limit_window_seconds,
@@ -435,6 +498,7 @@ function getOpenAIResetDate(window: OpenAIRateWindow): Date | undefined {
   ) {
     return new Date(window.reset_at * 1_000);
   }
+
   if (
     typeof window.reset_after_seconds === "number" &&
     Number.isFinite(window.reset_after_seconds) &&
@@ -442,6 +506,7 @@ function getOpenAIResetDate(window: OpenAIRateWindow): Date | undefined {
   ) {
     return new Date(Date.now() + window.reset_after_seconds * 1_000);
   }
+
   return undefined;
 }
 
@@ -455,10 +520,20 @@ function getWindowLabel(
       : typeof fallbackWindowSeconds === "number" && fallbackWindowSeconds > 0
         ? fallbackWindowSeconds
         : 0;
-  if (!safeWindowSeconds) return "0h";
+
+  if (!safeWindowSeconds) {
+    return "0h";
+  }
   const hours = Math.round(safeWindowSeconds / 3_600);
-  if (hours >= 144) return "Week";
-  if (hours >= 24) return "Day";
+
+  if (hours >= 144) {
+    return "Week";
+  }
+
+  if (hours >= 24) {
+    return "Day";
+  }
+
   return `${hours}h`;
 }
 
@@ -466,49 +541,85 @@ function prioritizeWindowsForModel(
   windows: RateWindow[],
   model?: { id?: string } | null,
 ): RateWindow[] {
-  if (!model?.id || windows.length <= 1) return windows;
+  if (!model?.id || windows.length <= 1) {
+    return windows;
+  }
   const modelTokens = normalizeTokens(model.id);
-  if (modelTokens.length === 0) return windows;
+
+  if (modelTokens.length === 0) {
+    return windows;
+  }
 
   const matched: RateWindow[] = [];
   const rest: RateWindow[] = [];
+
   for (const window of windows) {
     const labelTokens = normalizeTokens(window.label);
     const isMatch =
       modelTokens.every((token) => labelTokens.includes(token)) &&
       modelTokens.length * 2 > labelTokens.length;
-    if (isMatch) matched.push(window);
-    else rest.push(window);
+
+    if (isMatch) {
+      matched.push(window);
+    } else {
+      rest.push(window);
+    }
   }
-  if (matched.length === 0 || matched.length === windows.length) return windows;
+
+  if (matched.length === 0 || matched.length === windows.length) {
+    return windows;
+  }
+
   return [...matched, ...rest];
 }
 
 function windowPriority(window: RateWindow): number {
   const label = formatSubscriptionLabel(window.label);
-  if (label.endsWith("h")) return 0;
-  if (label === "7d") return 1;
-  if (label === "24h") return 2;
+
+  if (label.endsWith("h")) {
+    return 0;
+  }
+
+  if (label === "7d") {
+    return 1;
+  }
+
+  if (label === "24h") {
+    return 2;
+  }
+
   return 4;
 }
 
 function formatSubscriptionLabel(label: string): string {
   const normalized = normalizeOpenAIWindowLabel(label);
-  if (normalized === "Week") return "7d";
-  if (normalized === "Day") return "24h";
+
+  if (normalized === "Week") {
+    return "7d";
+  }
+
+  if (normalized === "Day") {
+    return "24h";
+  }
+
   return normalized;
 }
 
 function normalizeOpenAIWindowLabel(label: string): string {
   const match = label.match(/(?:^| )(1h|\d+h|Day|Week)$/);
+
   return match?.[1] ?? label;
 }
 
 function formatWindowReset(window: RateWindow): string | undefined {
   if (window.resetAt) {
     const resetAt = new Date(window.resetAt);
-    if (Number.isFinite(resetAt.getTime())) return formatReset(resetAt);
+
+    if (Number.isFinite(resetAt.getTime())) {
+      return formatReset(resetAt);
+    }
   }
+
   return window.resetDescription;
 }
 
@@ -520,9 +631,14 @@ function withFallbackForFetchFailure(
   snapshot: OpenAISubscriptionSnapshot,
   fallback: OpenAISubscriptionSnapshot | undefined,
 ): OpenAISubscriptionSnapshot {
-  if (!snapshot.error) return snapshot;
-  if (snapshot.error.code !== "NO_CREDENTIALS" && fallback?.windows.length)
+  if (!snapshot.error) {
+    return snapshot;
+  }
+
+  if (snapshot.error.code !== "NO_CREDENTIALS" && fallback?.windows.length) {
     return { ...fallback, error: snapshot.error };
+  }
+
   return snapshot;
 }
 
@@ -538,21 +654,29 @@ function createTimeoutController(timeoutMs: number): {
 } {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   return { controller, clear: () => clearTimeout(timeoutId) };
 }
 
 function firstEnv(names: string[]): string | undefined {
   for (const name of names) {
     const value = process.env[name]?.trim();
-    if (value) return value;
+
+    if (value) {
+      return value;
+    }
   }
+
   return undefined;
 }
 
 function readJson(path: string): Record<string, unknown> | undefined {
   try {
-    if (!existsSync(path)) return undefined;
+    if (!existsSync(path)) {
+      return undefined;
+    }
     const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+
     return isRecord(parsed) ? parsed : undefined;
   } catch {
     return undefined;
@@ -561,6 +685,7 @@ function readJson(path: string): Record<string, unknown> | undefined {
 
 function extractAccountIdFromJwt(token: string): string | undefined {
   const payload = decodeJwtPayload(token);
+
   return getRecordString(payload, [
     "account_id",
     "accountId",
@@ -574,7 +699,10 @@ function extractAccountIdFromJwt(token: string): string | undefined {
 function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
   try {
     const payload = token.split(".")[1];
-    if (!payload) return undefined;
+
+    if (!payload) {
+      return undefined;
+    }
     const padded = payload
       .replace(/-/g, "+")
       .replace(/_/g, "/")
@@ -582,6 +710,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
     const parsed = JSON.parse(
       Buffer.from(padded, "base64").toString("utf-8"),
     ) as unknown;
+
     return isRecord(parsed) ? parsed : undefined;
   } catch {
     return undefined;
@@ -593,11 +722,18 @@ function getNonEmptyString(value: unknown): string | undefined {
 }
 
 function getRecordString(record: unknown, keys: string[]): string | undefined {
-  if (!isRecord(record)) return undefined;
+  if (!isRecord(record)) {
+    return undefined;
+  }
+
   for (const key of keys) {
     const value = getNonEmptyString(record[key]);
-    if (value) return value;
+
+    if (value) {
+      return value;
+    }
   }
+
   return undefined;
 }
 
@@ -616,17 +752,27 @@ function normalizeTokens(value: string): string[] {
 
 function formatReset(date: Date): string {
   const diffMs = date.getTime() - Date.now();
-  if (!Number.isFinite(diffMs) || diffMs < 0) return "now";
+
+  if (!Number.isFinite(diffMs) || diffMs < 0) {
+    return "now";
+  }
 
   const diffMins = Math.floor(diffMs / 60_000);
-  if (diffMins < 60) return `${diffMins}m`;
+
+  if (diffMins < 60) {
+    return `${diffMins}m`;
+  }
 
   const hours = Math.floor(diffMins / 60);
   const mins = diffMins % 60;
-  if (hours < 24) return mins > 0 ? `${hours}h${mins}m` : `${hours}h`;
+
+  if (hours < 24) {
+    return mins > 0 ? `${hours}h${mins}m` : `${hours}h`;
+  }
 
   const days = Math.floor(hours / 24);
   const remHours = hours % 24;
+
   return remHours > 0 ? `${days}d${remHours}h` : `${days}d`;
 }
 
